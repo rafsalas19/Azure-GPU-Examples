@@ -7,7 +7,7 @@ SIZE=Standard_NV6_Promo
 RESOURCEGROUP=nvResourceGroup
 LOCATION=southcentralus
 VM_NAME=NVVM
-#find images with offering Windows-10
+#find images with offering Windows-10 or change to another
 # az vm image list --offer Windows-10 --all --output table
 
 IMAGE="MicrosoftWindowsDesktop:Windows-10:20h2-ent:latest"
@@ -21,3 +21,9 @@ az vm create --name $VM_NAME \
              --admin-username $USERNAME 
             #  --admin-password \
             
+az vm extension set \
+  --resource-group $RESOURCEGROUP \
+  --vm-name $VM_NAME \
+  --name NvidiaGpuDriverWindows \
+  --publisher Microsoft.HpcCompute \
+  --version 1.3 
