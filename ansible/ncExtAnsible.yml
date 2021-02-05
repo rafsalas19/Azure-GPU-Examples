@@ -1,0 +1,74 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+  - name: Create resource group
+    azure_rm_resourcegroup:
+      name:  "{{ name }}rg"
+      location: "{{ location }}"
+  - name: Create virtual network
+    azure_rm_virtualnetwork:
+      resource_group: "{{ name }}rg"
+      name: "{{ name }}Vnet"
+      address_prefixes: "10.0.0.0/16"
+  - name: Add subnet
+    azure_rm_subnet:
+      resource_group: "{{ name }}rg"
+      name: "{{ name }}Subnet"
+      address_prefix: "10.0.1.0/24"
+      virtual_network: "{{ name }}Vnet"
+  - name: Create public IP address
+    azure_rm_publicipaddress:
+      resource_group: "{{ name }}rg"
+      allocation_method: Static
+      name: "{{ name }}PublicIP"
+    register: output_ip_address
+  - name: Dump public IP for VM which will be created
+    debug:
+      msg: "The public IP is {{ output_ip_address.state.ip_address }}."
+  - name: Create Network Security Group that allows SSH
+    azure_rm_securitygroup:
+      resource_group: "{{ name }}rg"
+      name: "{{ name }}NetworkSecurityGroup"
+      rules:
+        - name: SSH
+          protocol: Tcp
+          destination_port_range: 22
+          access: Allow
+          priority: 1001
+          direction: Inbound
+  - name: Create virtual network interface card
+    azure_rm_networkinterface:
+      resource_group: "{{ name }}rg"
+      name: "{{ name }}NIC"
+      virtual_network: "{{ name }}Vnet"
+      subnet: "{{ name }}Subnet"
+      public_ip_name: "{{ name }}PublicIP"
+      security_group: "{{ name }}NetworkSecurityGroup"
+  - name: Create VM
+    azure_rm_virtualmachine:
+      resource_group: "{{ name }}rg"
+      name: "{{ name }}VM"
+      vm_size: "{{size}}"
+      admin_username: "{{userName}}"
+      ssh_password_enabled: false
+      ssh_public_keys:
+        - path: /home/{{userName}}/.ssh/authorized_keys 
+          key_data: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDDVwb1+M2qchsMWFzQp+mwUDYhC6XHyQeHKVC+bPtk/vYPZ2r4hCp4/kxTkqO/FL8mF14rOekKxpf0JfMIIun2BjDXdfiIoiV3Hnqw2p0SdXzktc5s/+Mjv5tJurGXQOLajgNJcOeVEBqv/4jpZnrVOPiWy09NuSBBFObvIPmJ/umcf45GIlFOJwv/1frP5YQuIw1cn/3KRPJvgVa+gLH27e6AvibAnFgIO0fsdEhACYp+59I2fjWkqB2WwwTIszozaBtbr3dXBtC9seSPUf96ukAwXpey02GmmRfTznKKw2okULQQGK31p97/WO+tKgkzVM2BYhsp3ilqWTTEfNT/3wnBqT4XfMq7uPD5avOEMr9jzzcXpOrk9txlYTuj5AziK9EPjYVIxrf5X6wjbJTYlM4145fhISk5ZGcnt4/kjJNt19zNj/tBWzN7atu0tV79xqw6RsJ7TfJJi8bx0L6HxOaRQ/3Scs3HxMlDXwioJYVzR5Qn9ib7jxXoWzp94HG2yZ2UK2twIOInDr0y71d3dQ763vMJjHI/fwz1b3Kg59rIA1fWmQA95KBiEIfCt82MIpb6UoHAEFtrxjX4Xz1jLMcLZyHWjmyXlbc6Acu/5ufRjpeW3JBFM7Ug5i0jK/oOI2cEBFddnFFKpL+f41vdm9N3a2Jy4/Bb6R1fdUjOBQ== rafael@cc-d23c66d3-7bd5fffc98-rtfp5"#"{{sshKey}}"
+      network_interfaces: "{{ name }}NIC"
+      image:
+        offer: CentOS
+        publisher: OpenLogic
+        sku: '7.7'
+        version: latest
+  - name: Create VM Extension
+    community.azure.azure_rm_virtualmachineextension:
+      name: NvidiaGpuDriverLinux
+      location: "{{ location }}"
+      resource_group: "{{ name }}rg"
+      virtual_machine_name: "{{ name }}VM"
+      publisher: Microsoft.HpcCompute
+      virtual_machine_extension_type: NvidiaGpuDriverLinux
+      type_handler_version: "1.3"
+      settings: '{}'
+      auto_upgrade_minor_version: true
