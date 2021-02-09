@@ -1,16 +1,21 @@
-echo "subscription Id: "
-Get-AzSubscription | Format-Wide -Property Id
 
-$RESOURCE_GROUP="rafTestrg"
-$LOCATION="centralus"
+
+
+Set-AzContext -Subscription 1fe17a82-9977-48b7-b05e-8b4df3e7eb80
+
+echo "subscription: "
+ Get-AzContext | Format-Wide -Property Name
+
+$RESOURCE_GROUP="RafaelSalasGPU"
+$LOCATION="westeurope"
 #Get-AzVMSize -Location "East US" | grep Standard_NV
 $VMSIZE="Standard_NV4as_v4"
-$VM_NAME="nvVM"
+$VM_NAME="winservVM"
 $pubname="MicrosoftWindowsDesktop"
 $offer="windows-10-1809-vhd-client-prod-stage"
 $sku="rs5-enterprise"
 
-$RES =Get-AzResourceGroup -Name "rafTestrg" -Erroraction ignore
+$RES =Get-AzResourceGroup -Name $RESOURCE_GROUP -Erroraction ignore
 if($RES -ne $null){
   Write-Output "$RESOURCE_GROUP Exists"
 
